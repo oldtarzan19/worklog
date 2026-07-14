@@ -2,50 +2,59 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Auth\StoreRegistrationRequest;
+use App\Models\RegistrationRequest;
 use App\Models\User;
-use Illuminate\Auth\Events\Registered;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\Rules;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class RegisteredUserController extends Controller
 {
-    /**
-     * Show the registration page.
-     */
     public function create(): Response
     {
-        return Inertia::render('auth/Register');
+        return Inertia::render('auth/Register', [
+            'isFirstRegistration' => ! User::query()->exists() && ! RegistrationRequest::query()->exists(),
+        ]);
     }
 
-    /**
-     * Handle an incoming registration request.
-     *
-     * @throws \Illuminate\Validation\ValidationException
-     */
-    public function store(Request $request): RedirectResponse
+    public function pending(): Response
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|lowercase|email|max:255|unique:'.User::class,
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
-        ]);
+        return Inertia::render('auth/RegistrationPending');
+    }
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
+    public function store(StoreRegistrationRequest $request): RedirectResponse
+    {
+        return Cache::lock('worklog:first-registration', 10)->block(5, function () use ($request): RedirectResponse {
+            return DB::transaction(function () use ($request): RedirectResponse {
+                $isFirstRegistration = ! User::query()->exists() && ! RegistrationRequest::query()->exists();
+                $attributes = [
+                    'name' => $request->string('name'),
+                    'email' => $request->string('email'),
+                    'password' => Hash::make($request->string('password')),
+                ];
 
-        event(new Registered($user));
+                if ($isFirstRegistration) {
+                    $user = User::query()->create([
+                        ...$attributes,
+                        'role' => UserRole::Admin,
+                        'is_active' => true,
+                    ]);
+                    Auth::login($user);
 
-        Auth::login($user);
+                    return to_route('dashboard')->with('success', 'Az első fiók adminisztrátorként létrejött.');
+                }
 
-        return to_route('dashboard');
+                RegistrationRequest::query()->create($attributes);
+
+                return to_route('registration.pending')->with('success', 'A regisztrációd jóváhagyásra vár.');
+            });
+        });
     }
 }

@@ -16,10 +16,12 @@ export interface NavItem {
     isActive?: boolean;
 }
 
-export interface SharedData {
+export interface SharedData extends Record<string, unknown> {
     name: string;
     quote: { message: string; author: string };
     auth: Auth;
+    pendingRegistrations: number;
+    flash: { success?: string };
     ziggy: {
         location: string;
         url: string;
@@ -34,9 +36,55 @@ export interface User {
     name: string;
     email: string;
     avatar?: string;
-    email_verified_at: string | null;
     created_at: string;
     updated_at: string;
+    role: 'admin' | 'user';
+    is_active: boolean;
+}
+
+export interface TimeEntry {
+    id: number;
+    user_id: number;
+    user_name?: string | null;
+    work_date: string;
+    start_time: string;
+    end_time: string;
+    note?: string | null;
+    minutes: number;
+    duration: string;
+}
+
+export interface DailySummary {
+    date: string;
+    minutes: number;
+    duration: string;
+}
+
+export interface DashboardFilters {
+    from: string;
+    to: string;
+    user_id?: number | null;
+}
+
+export interface WorklogKpis {
+    total_minutes: number;
+    total_duration: string;
+    workdays: number;
+    average_minutes: number;
+    average_duration: string;
+}
+
+export interface UserOption {
+    id: number;
+    name: string;
+    email: string;
+}
+
+export interface RegistrationRequest {
+    id: number;
+    name: string;
+    email: string;
+    created_at: string;
 }
 
 export type BreadcrumbItemType = BreadcrumbItem;

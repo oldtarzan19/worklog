@@ -6,8 +6,8 @@ import type { Component } from 'vue';
 
 interface NavItem {
     title: string;
-    url: string;
-    icon: Component;
+    href: string;
+    icon?: Component;
 }
 
 defineProps<{
@@ -22,8 +22,8 @@ const page = usePage<SharedData>();
         <SidebarGroupLabel>Platform</SidebarGroupLabel>
         <SidebarMenu>
             <SidebarMenuItem v-for="item in items" :key="item.title">
-                <SidebarMenuButton as-child :is-active="item.url === page.url">
-                    <Link :href="item.url">
+                <SidebarMenuButton as-child :is-active="page.url.startsWith(item.href)">
+                    <Link :href="item.href">
                         <component :is="item.icon" />
                         <span>{{ item.title }}</span>
                     </Link>
