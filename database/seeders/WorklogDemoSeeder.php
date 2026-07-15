@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\UserRole;
+use App\Models\RegistrationRequest;
 use App\Models\User;
 use App\Models\WorkEntry;
 use Carbon\CarbonImmutable;
@@ -37,7 +38,7 @@ class WorklogDemoSeeder extends Seeder
                     'name' => $employee['name'],
                     'password' => Hash::make('password'),
                     'role' => UserRole::User,
-                    'is_active' => true,
+                    'is_active' => $employee['is_active'],
                 ],
             );
 
@@ -50,10 +51,12 @@ class WorklogDemoSeeder extends Seeder
 
             $this->seedWorkEntries($user, $employee, $employeeIndex);
         }
+
+        $this->seedRegistrationRequests();
     }
 
     /**
-     * @param  array{name: string, email: string, start: string, lunch_start: string, lunch_end: string, end: string}  $employee
+     * @param  array{name: string, email: string, is_active: bool, start: string, lunch_start: string, lunch_end: string, end: string}  $employee
      */
     private function seedWorkEntries(User $user, array $employee, int $employeeIndex): void
     {
@@ -99,7 +102,7 @@ class WorklogDemoSeeder extends Seeder
     }
 
     /**
-     * @return array<int, array{name: string, email: string, start: string, lunch_start: string, lunch_end: string, end: string}>
+     * @return array<int, array{name: string, email: string, is_active: bool, start: string, lunch_start: string, lunch_end: string, end: string}>
      */
     private function employees(): array
     {
@@ -107,6 +110,7 @@ class WorklogDemoSeeder extends Seeder
             [
                 'name' => 'Kovács Anna',
                 'email' => 'anna.kovacs@worklog.test',
+                'is_active' => true,
                 'start' => '07:30',
                 'lunch_start' => '11:45',
                 'lunch_end' => '12:15',
@@ -115,6 +119,7 @@ class WorklogDemoSeeder extends Seeder
             [
                 'name' => 'Nagy Balázs',
                 'email' => 'balazs.nagy@worklog.test',
+                'is_active' => true,
                 'start' => '08:00',
                 'lunch_start' => '12:00',
                 'lunch_end' => '12:45',
@@ -123,6 +128,7 @@ class WorklogDemoSeeder extends Seeder
             [
                 'name' => 'Tóth Csilla',
                 'email' => 'csilla.toth@worklog.test',
+                'is_active' => true,
                 'start' => '08:30',
                 'lunch_start' => '12:30',
                 'lunch_end' => '13:00',
@@ -131,11 +137,39 @@ class WorklogDemoSeeder extends Seeder
             [
                 'name' => 'Kiss Dávid',
                 'email' => 'david.kiss@worklog.test',
+                'is_active' => false,
                 'start' => '09:00',
                 'lunch_start' => '13:00',
                 'lunch_end' => '13:30',
                 'end' => '17:30',
             ],
+        ];
+    }
+
+    private function seedRegistrationRequests(): void
+    {
+        foreach ($this->registrationRequests() as $registrationRequest) {
+            if (User::query()->where('email', $registrationRequest['email'])->exists()) {
+                continue;
+            }
+
+            RegistrationRequest::query()->updateOrCreate(
+                ['email' => $registrationRequest['email']],
+                [
+                    'name' => $registrationRequest['name'],
+                    'password' => Hash::make('password'),
+                ],
+            );
+        }
+    }
+
+    /** @return array<int, array{name: string, email: string}> */
+    private function registrationRequests(): array
+    {
+        return [
+            ['name' => 'Szabó Eszter', 'email' => 'eszter.szabo@worklog.test'],
+            ['name' => 'Horváth Gergő', 'email' => 'gergo.horvath@worklog.test'],
+            ['name' => 'Varga Lilla', 'email' => 'lilla.varga@worklog.test'],
         ];
     }
 }
