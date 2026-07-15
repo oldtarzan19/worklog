@@ -123,7 +123,7 @@ function dateString(date: Date): string {
                 :owner-name="selectedUser?.name"
                 :editable="!!selectedUser"
                 :creatable="!!selectedUser"
-                :calendar-interactive="!!selectedUser"
+                :team-aggregate="!selectedUser"
                 @preset="preset"
             />
             <PaginationLinks :links="entries.links" />

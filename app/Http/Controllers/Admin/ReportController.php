@@ -27,14 +27,13 @@ class ReportController extends Controller
             ->paginate(50)
             ->withQueryString()
             ->through(fn (WorkEntry $entry): array => $workTime->serialize($entry));
-        $calendarEntries = $selectedUser
-            ? (clone $query)->select(['id', 'user_id', 'work_date', 'start_time', 'end_time', 'note'])
-                ->with('user:id,name')
-                ->orderBy('work_date')
-                ->orderBy('start_time')
-                ->get()
-                ->map(fn (WorkEntry $entry): array => $workTime->serialize($entry))
-            : [];
+        $calendarEntries = (clone $query)
+            ->select(['id', 'user_id', 'work_date', 'start_time', 'end_time', 'note'])
+            ->with('user:id,name')
+            ->orderBy('work_date')
+            ->orderBy('start_time')
+            ->get()
+            ->map(fn (WorkEntry $entry): array => $workTime->serialize($entry));
 
         return Inertia::render('admin/Reports', [
             'filters' => [
@@ -45,7 +44,7 @@ class ReportController extends Controller
             'users' => User::query()->orderBy('name')->get(['id', 'name', 'email']),
             'selectedUser' => $selectedUser?->only(['id', 'name', 'email']),
             'dailySummaries' => $workTime->dailyFromQuery($query),
-            'kpis' => $workTime->kpisFromQuery($query),
+            'kpis' => $workTime->kpisFromQuery($query, averagePerUser: $selectedUser === null),
             'entries' => $entries,
             'calendarEntries' => $calendarEntries,
             'userSummaries' => $selectedUser ? [] : $workTime->userSummariesFromQuery($query),

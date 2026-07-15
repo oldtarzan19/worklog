@@ -110,7 +110,12 @@ test('admin reports identify entry owners and admins can update their entries fr
             ->where('entries.data.0.user_id', $user->id)
             ->where('entries.data.0.user_name', 'Kovács Anna')
             ->where('entries.data.0.work_date', $date)
-            ->where('entries.data.1.work_date', $olderDate));
+            ->where('entries.data.1.work_date', $olderDate)
+            ->has('calendarEntries', 2)
+            ->where('calendarEntries.0.user_name', 'Kovács Anna')
+            ->where('calendarEntries.0.work_date', $olderDate)
+            ->where('calendarEntries.1.user_name', 'Kovács Anna')
+            ->where('calendarEntries.1.work_date', $date));
 
     $this->actingAs($admin)
         ->patch(route('work-entries.update', $entry), [
@@ -124,6 +129,42 @@ test('admin reports identify entry owners and admins can update their entries fr
     expect($entry->refresh())
         ->start_time->toBe('09:00')
         ->end_time->toBe('13:00');
+});
+
+test('combined admin report daily average is calculated per reporting user', function () {
+    $admin = User::factory()->admin()->create();
+    $firstUser = User::factory()->create();
+    $secondUser = User::factory()->create();
+    User::factory()->create();
+    $date = today()->subDay()->toDateString();
+
+    WorkEntry::factory()->for($firstUser)->create([
+        'work_date' => $date,
+        'start_time' => '08:00',
+        'end_time' => '12:00',
+    ]);
+    WorkEntry::factory()->for($secondUser)->create([
+        'work_date' => $date,
+        'start_time' => '08:00',
+        'end_time' => '16:00',
+    ]);
+
+    $this->actingAs($admin)
+        ->get(route('admin.reports.index', ['from' => $date, 'to' => $date]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selectedUser', null)
+            ->where('kpis.total_minutes', 720)
+            ->where('kpis.workdays', 1)
+            ->where('kpis.average_minutes', 360)
+            ->where('kpis.average_duration', '6:00'));
+
+    $this->actingAs($admin)
+        ->get(route('admin.reports.index', ['from' => $date, 'to' => $date, 'user_id' => $firstUser->id]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->where('selectedUser.id', $firstUser->id)
+            ->where('kpis.total_minutes', 240)
+            ->where('kpis.average_minutes', 240)
+            ->where('kpis.average_duration', '4:00'));
 });
 
 test('an administrator cannot spoof the owner to bypass overlap validation', function () {

@@ -48,9 +48,10 @@ const props = withDefaults(
         editable?: boolean;
         creatable?: boolean;
         calendarInteractive?: boolean;
+        teamAggregate?: boolean;
         detailsPageSize?: number | null;
     }>(),
-    { editable: true, creatable: true, calendarInteractive: true, detailsPageSize: null },
+    { editable: true, creatable: true, calendarInteractive: true, teamAggregate: false, detailsPageSize: null },
 );
 defineEmits<{ preset: [value: string] }>();
 
@@ -71,6 +72,13 @@ const visibleEntryCount = ref(props.detailsPageSize ?? props.entries.length);
 const visibleEntries = computed(() => props.entries.slice(0, visibleEntryCount.value));
 const hasMoreEntries = computed(() => visibleEntryCount.value < props.entries.length);
 const showsUserColumn = computed(() => props.entries.some((entry) => entry.user_name));
+const totalTimeLabel = computed(() => (props.teamAggregate ? 'Összes emberóra' : 'Összes munkaidő'));
+const dailyAverageLabel = computed(() => (props.teamAggregate ? 'Napi átlag / fő' : 'Napi átlag'));
+const calendarTitle = computed(() => (props.teamAggregate ? 'Emberóra-naptár' : 'Munkaidő-naptár'));
+const chartTitle = computed(() => (props.teamAggregate ? 'Napi emberóra' : 'Napi munkaidő'));
+const chartDescription = computed(() =>
+    props.teamAggregate ? 'A csapat összesített emberórái napi bontásban.' : 'A szűrt időszak órái napi bontásban.',
+);
 const now = new Date();
 const today = new CalendarDate(now.getFullYear(), now.getMonth() + 1, now.getDate());
 const todayString = today.toString();
@@ -269,7 +277,8 @@ function heatClass(day: DateValue): string {
         <div class="grid gap-4 sm:grid-cols-3">
             <Card>
                 <CardHeader class="pb-2"
-                    ><CardDescription>Összes munkaidő</CardDescription><CardTitle class="text-3xl">{{ kpis.total_duration }}</CardTitle></CardHeader
+                    ><CardDescription>{{ totalTimeLabel }}</CardDescription
+                    ><CardTitle class="text-3xl">{{ kpis.total_duration }}</CardTitle></CardHeader
                 >
             </Card>
             <Card>
@@ -279,7 +288,8 @@ function heatClass(day: DateValue): string {
             </Card>
             <Card>
                 <CardHeader class="pb-2"
-                    ><CardDescription>Napi átlag</CardDescription><CardTitle class="text-3xl">{{ kpis.average_duration }}</CardTitle></CardHeader
+                    ><CardDescription>{{ dailyAverageLabel }}</CardDescription
+                    ><CardTitle class="text-3xl">{{ kpis.average_duration }}</CardTitle></CardHeader
                 >
             </Card>
         </div>
@@ -287,9 +297,10 @@ function heatClass(day: DateValue): string {
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
             <Card class="overflow-hidden">
                 <CardHeader
-                    ><CardTitle>Munkaidő-naptár</CardTitle
+                    ><CardTitle>{{ calendarTitle }}</CardTitle
                     ><CardDescription v-if="calendarInteractive !== false"
-                        >A múltbeli napokra kattintva megtekintheted és szerkesztheted a bejegyzéseket.</CardDescription
+                        >A múltbeli napokra kattintva megtekintheted{{ editable !== false ? ' és szerkesztheted' : '' }} a
+                        bejegyzéseket.</CardDescription
                     ><CardDescription v-else>A kiválasztott időszak csapatszintű napi összesítése.</CardDescription></CardHeader
                 >
                 <CardContent>
@@ -314,7 +325,10 @@ function heatClass(day: DateValue): string {
             </Card>
 
             <Card>
-                <CardHeader><CardTitle>Napi munkaidő</CardTitle><CardDescription>A szűrt időszak órái napi bontásban.</CardDescription></CardHeader>
+                <CardHeader
+                    ><CardTitle>{{ chartTitle }}</CardTitle
+                    ><CardDescription>{{ chartDescription }}</CardDescription></CardHeader
+                >
                 <CardContent>
                     <div v-if="chartData.length" class="h-[330px] w-full [--vis-primary-color:hsl(var(--primary))]">
                         <VisXYContainer :data="chartData" :margin="{ left: 40, right: 10, top: 10, bottom: 35 }">
@@ -325,8 +339,12 @@ function heatClass(day: DateValue): string {
                                 :rounded-corners="4"
                             />
                             <VisAxis type="x" :x="(_d: ChartDatum, i: number) => i" :tick-format="(i: number) => chartData[i]?.date.slice(5) ?? ''" />
-                            <VisAxis type="y" :tick-format="(value: number) => `${value} ó`" />
-                            <VisTooltip :triggers="{ [GroupedBar.selectors.bar]: (d: ChartDatum) => `${d.date}: ${d.hours} óra` }" />
+                            <VisAxis type="y" :tick-format="(value: number) => `${value} ${teamAggregate ? 'eó' : 'ó'}`" />
+                            <VisTooltip
+                                :triggers="{
+                                    [GroupedBar.selectors.bar]: (d: ChartDatum) => `${d.date}: ${d.hours} ${teamAggregate ? 'emberóra' : 'óra'}`,
+                                }"
+                            />
                         </VisXYContainer>
                     </div>
                     <div v-else class="flex h-[330px] items-center justify-center text-sm text-muted-foreground">

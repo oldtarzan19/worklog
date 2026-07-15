@@ -31,6 +31,9 @@ class ExportController extends Controller
             ->when($user, fn ($query) => $query->whereBelongsTo($user))
             ->withinWorkDates($range['from']->toDateString(), $range['to']->toDateString());
 
-        return Excel::download(new WorklogExport($entries, $workTime), 'worklog-'.$range['from']->format('Ymd').'-'.$range['to']->format('Ymd').'.xlsx');
+        return Excel::download(
+            new WorklogExport($entries, $workTime, $range['from'], $range['to']),
+            'worklog-'.$range['from']->format('Ymd').'-'.$range['to']->format('Ymd').'.xlsx',
+        );
     }
 }

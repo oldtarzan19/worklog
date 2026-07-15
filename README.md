@@ -60,10 +60,11 @@ A policy-k alapján a felhasználó csak saját rekordjain végezhet CRUD-művel
 - Alapértelmezett időszak az aktuális hónap.
 - Dátumtartomány-választó „ettől–eddig” mezőkkel, valamint aktuális hónap, előző hónap, aktuális év és egyedi időszak gyorsszűrőkkel.
 - A szűrők URL query paraméterként maradnak meg frissítés és visszanavigálás után.
+- Az oldalon található egy gomb ahol egy felugró modalban a felhasználó meg tudja adni a ledolgozott munkaidejét.
 - Fő elem egy havi Shadcn naptár:
     - minden nap cellája mutatja az összes ledolgozott időt;
     - a színintenzitás jelzi a napi óraszámot;
-    - napra kattintva Sheet/Dialog nyílik az idősávokkal és a létrehozás/szerkesztés/törlés műveletekkel.
+    - napra kattintva Sheet/Dialog nyílik az idősávokkal és a szerkesztés/törlés műveletekkel.
 - Kiegészítő KPI-k: összes munkaidő, munkanapok száma és napi átlag.
 - Kompakt oszlopdiagram mutatja a szűrt időszak napi munkaidejét.
 - A részletes, lapozott táblázat dátumot, kezdést, befejezést, időtartamot és megjegyzést mutat.
@@ -85,7 +86,7 @@ A policy-k alapján a felhasználó csak saját rekordjain végezhet CRUD-művel
 ### Shadcn Vue használat
 
 Minden interaktív felület Shadcn elemekből épül: Sidebar, Card, Calendar/Range Calendar, Popover, Select, Combobox, Dialog, Sheet, Form, Input, Textarea, Table/Data Table, Badge, Alert Dialog, Skeleton, Tooltip, Sonner és
-Chart. A chart komponens az official Shadcn Vue megoldás szerint Unovisra épül. [Shadcn Vue komponensek](https://www.shadcn-vue.com/docs/components), [Chart dokumentáció](https://www.shadcn-vue.com/docs/components/chart)
+Chart. A chart komponens az official Shadcn Vue megoldás szerint Unovisra épül.
 
 A felület:
 
@@ -100,14 +101,12 @@ A felület:
 - Form Request osztályok végzik a validációt és az engedélyezést; policy-k akadályozzák meg más felhasználók adatainak elérését.
 - A listák lapozottak, a riportlekérdezések csak a szükséges oszlopokat kérik le, és használják a dátum- és felhasználóindexeket.
 - Az Inertia oldalak típusos `TimeEntry`, `DailySummary`, `DashboardFilters`, `UserOption` és `RegistrationRequest` propokat kapnak.
-- Az XLSX-exporthoz a Laravel 12-t támogató stabil `maatwebsite/excel:^3.1` csomag kerül be. A jelenlegi stabil ág támogatja a Laravel 12-t; a dokumentált 4.x ág fejlesztői állapotú, ezért nem ezt használjuk. [Packagist
-  csomaginformáció](https://packagist.org/packages/maatwebsite/excel)
+- Az XLSX-exporthoz a Laravel 12-t támogató stabil `maatwebsite/excel:^3.1` csomag kerül be.
 - Az Excel két munkalapot tartalmaz:
     - „Összesítés”: felhasználó, munkanapok, teljes idő és napi átlag;
     - „Részletek”: felhasználó, dátum, kezdés, befejezés, időtartam és megjegyzés.
-- A tartam cellái valódi Excel-időértékek `[h]:mm` formázással, nem puszta szövegek.
+- A tartam cellái valódi Excel-időértékek `[h]:mm` formázással.
 - Az export jogosultsága és szűrése szerveroldali; manipulált query paraméterrel sem kérhetők le tiltott adatok.
-- A README tartalmazza a MySQL-beállítást, migrációt, buildet, tesztelést és az első adminisztrátor létrehozásának parancsát.
 
 ## Fejlesztői tesztadatok és seedelés
 

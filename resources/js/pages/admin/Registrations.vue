@@ -25,9 +25,8 @@ const rejecting = ref<RegistrationRequest | null>(null);
 function approve(request: RegistrationRequest): void {
     router.post(route('admin.registrations.approve', { registrationRequest: request.id }));
 }
-function reject(): void {
-    if (!rejecting.value) return;
-    router.delete(route('admin.registrations.reject', { registrationRequest: rejecting.value.id }), {
+function reject(request: RegistrationRequest): void {
+    router.delete(route('admin.registrations.reject', { registrationRequest: request.id }), {
         onSuccess: () => {
             rejecting.value = null;
         },
@@ -76,7 +75,9 @@ function reject(): void {
                                                     ></AlertDialogHeader
                                                 ><AlertDialogFooter
                                                     ><AlertDialogCancel>Mégse</AlertDialogCancel
-                                                    ><AlertDialogAction @click="reject">Kérelem elutasítása</AlertDialogAction></AlertDialogFooter
+                                                    ><AlertDialogAction @click="reject(request)"
+                                                        >Kérelem elutasítása</AlertDialogAction
+                                                    ></AlertDialogFooter
                                                 ></AlertDialogContent
                                             ></AlertDialog
                                         >

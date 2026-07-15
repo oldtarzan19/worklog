@@ -54,15 +54,17 @@ class WorkTimeService
     }
 
     /** @return array{total_minutes: int, total_duration: string, workdays: int, average_minutes: int, average_duration: string} */
-    public function kpisFromQuery(Builder $query): array
+    public function kpisFromQuery(Builder $query, bool $averagePerUser = false): array
     {
         $totals = (clone $query)->toBase()
             ->selectRaw('COALESCE(SUM('.$this->minutesSql().'), 0) as total_minutes')
             ->selectRaw('COUNT(DISTINCT '.$this->workDateSql().') as workdays')
+            ->selectRaw('COUNT(DISTINCT '.(new WorkEntry)->qualifyColumn('user_id').') as users')
             ->first();
         $total = (int) $totals->total_minutes;
         $workdays = (int) $totals->workdays;
-        $average = $workdays > 0 ? (int) round($total / $workdays) : 0;
+        $userCount = $averagePerUser ? max((int) $totals->users, 1) : 1;
+        $average = $workdays > 0 ? (int) round($total / $workdays / $userCount) : 0;
 
         return [
             'total_minutes' => $total,
