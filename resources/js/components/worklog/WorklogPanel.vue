@@ -205,9 +205,9 @@ function heatClass(day: DateValue): string {
 </script>
 
 <template>
-    <div class="flex flex-col gap-6">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div class="grid flex-1 grid-cols-2 gap-2 sm:flex sm:flex-wrap">
+    <div class="flex min-w-0 max-w-full flex-col gap-6">
+        <div class="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="grid min-w-0 flex-1 grid-cols-1 gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap">
                 <Button variant="outline" size="sm" @click="$emit('preset', 'current-month')">Aktuális hónap</Button>
                 <Button variant="outline" size="sm" @click="$emit('preset', 'previous-month')">Előző hónap</Button>
                 <Button variant="outline" size="sm" @click="$emit('preset', 'current-year')">Aktuális év</Button>
@@ -295,7 +295,7 @@ function heatClass(day: DateValue): string {
         </div>
 
         <div class="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,.8fr)]">
-            <Card class="overflow-hidden">
+            <Card class="min-w-0 overflow-hidden">
                 <CardHeader
                     ><CardTitle>{{ calendarTitle }}</CardTitle
                     ><CardDescription v-if="calendarInteractive !== false"
@@ -303,7 +303,7 @@ function heatClass(day: DateValue): string {
                         bejegyzéseket.</CardDescription
                     ><CardDescription v-else>A kiválasztott időszak csapatszintű napi összesítése.</CardDescription></CardHeader
                 >
-                <CardContent>
+                <CardContent class="min-w-0">
                     <Calendar
                         v-model="selectedDate"
                         locale="hu-HU"
@@ -324,12 +324,12 @@ function heatClass(day: DateValue): string {
                 </CardContent>
             </Card>
 
-            <Card>
+            <Card class="min-w-0 overflow-hidden">
                 <CardHeader
                     ><CardTitle>{{ chartTitle }}</CardTitle
                     ><CardDescription>{{ chartDescription }}</CardDescription></CardHeader
                 >
-                <CardContent>
+                <CardContent class="min-w-0">
                     <div v-if="chartData.length" class="h-[330px] w-full [--vis-primary-color:hsl(var(--primary))]">
                         <VisXYContainer :data="chartData" :margin="{ left: 40, right: 10, top: 10, bottom: 35 }">
                             <VisGroupedBar

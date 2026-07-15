@@ -28,7 +28,7 @@ const emits = defineEmits<{
     'update:open': [open: boolean];
 }>();
 
-const isMobile = useMediaQuery('(max-width: 768px)');
+const isMobile = useMediaQuery('(max-width: 767px)');
 const openMobile = ref(false);
 
 const open = useVModel(props, 'open', emits, {
@@ -81,7 +81,12 @@ provideSidebarContext({
                 '--sidebar-width': SIDEBAR_WIDTH,
                 '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
             }"
-            :class="cn('group/sidebar-wrapper flex min-h-svh w-full text-sidebar-foreground has-[[data-variant=inset]]:bg-sidebar', props.class)"
+            :class="
+                cn(
+                    'group/sidebar-wrapper flex min-h-svh w-full min-w-0 max-w-full overflow-x-hidden text-sidebar-foreground has-[[data-variant=inset]]:bg-sidebar',
+                    props.class,
+                )
+            "
         >
             <slot />
         </div>

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import Sheet from '@/components/ui/sheet/Sheet.vue';
 import SheetContent from '@/components/ui/sheet/SheetContent.vue';
+import SheetDescription from '@/components/ui/sheet/SheetDescription.vue';
+import SheetTitle from '@/components/ui/sheet/SheetTitle.vue';
 import { cn } from '@/lib/utils';
 import type { HTMLAttributes } from 'vue';
 import { SIDEBAR_WIDTH_MOBILE, useSidebar } from './utils';
@@ -40,12 +42,14 @@ const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
             data-sidebar="sidebar"
             data-mobile="true"
             :side="side"
-            class="w-[--sidebar-width] bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
+            class="h-dvh max-h-dvh w-[calc(100vw-2rem)] max-w-[--sidebar-width] overflow-hidden bg-sidebar p-0 text-sidebar-foreground [&>button]:hidden"
             :style="{
                 '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
             }"
         >
-            <div class="flex h-full w-full flex-col">
+            <SheetTitle class="sr-only">Navigáció</SheetTitle>
+            <SheetDescription class="sr-only">A Worklog fő navigációja és felhasználói menüje.</SheetDescription>
+            <div class="flex h-full min-h-0 w-full flex-col overflow-hidden">
                 <slot />
             </div>
         </SheetContent>

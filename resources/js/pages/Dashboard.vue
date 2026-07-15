@@ -59,7 +59,7 @@ function localDate(date: Date): string {
 <template>
     <Head title="Munkaidőm" />
     <AppLayout :breadcrumbs="[{ title: 'Munkaidőm', href: '/dashboard' }]">
-        <div class="flex flex-1 flex-col gap-6 p-4 md:p-6">
+        <div class="flex w-full min-w-0 max-w-full flex-1 flex-col gap-6 overflow-x-hidden p-4 md:p-6">
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">Munkaidőm</h1>
                 <p class="text-sm text-muted-foreground">Rögzítsd és tekintsd át a ledolgozott idődet.</p>

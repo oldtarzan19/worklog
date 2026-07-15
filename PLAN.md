@@ -86,7 +86,7 @@ A policy-k alapján a felhasználó csak saját rekordjain végezhet CRUD-művel
 ### Shadcn Vue használat
 
 Minden interaktív felület Shadcn elemekből épül: Sidebar, Card, Calendar/Range Calendar, Popover, Select, Combobox, Dialog, Sheet, Form, Input, Textarea, Table/Data Table, Badge, Alert Dialog, Skeleton, Tooltip, Sonner és
-Chart. A chart komponens az official Shadcn Vue megoldás szerint Unovisra épül.
+Chart.
 
 A felület:
 
@@ -114,8 +114,6 @@ A felület:
 - A seeder célja, hogy az alkalmazás fő funkciói – a dashboard, a naptár, a riportok, az adminisztráció és az XLSX-export – kézi adatbevitel nélkül, valószerű tesztadatokkal azonnal kipróbálhatók legyenek.
 - A demó adatok egy aktív adminisztrátort és négy aktív munkavállalót tartalmaznak. A munkavállalókhoz az előző 90 nap munkanapjaira, ebédszünettel kettébontott és változatos megjegyzésekkel ellátott munkaidő-bejegyzések készülnek.
 - A seedelés többször is biztonságosan lefuttatható: ugyanazokat a demó felhasználókat frissíti, a kezelt időszak bejegyzéseit pedig duplikáció nélkül állítja elő újra.
-- A demó adatok kizárólag helyi és tesztkörnyezetben tölthetők be; production környezetben a seeder hibával leáll. Az éles rendszer első adminisztrátorát továbbra is a `php artisan worklog:create-admin` paranccsal kell létrehozni.
-- A teljes demó adatkészlet a `php artisan migrate:fresh --seed` paranccsal, meglévő adatbázison pedig a `php artisan db:seed` paranccsal tölthető be.
 
 ## Tesztelés és elfogadási feltételek
 
@@ -143,9 +141,6 @@ Ellenőrzés:
 
 ## Rögzített feltételezések
 
-- A production adatbázis MySQL, a tesztek SQLite memóriadatbázison is futnak.
+- A production adatbázis MySQL.
 - Az alkalmazás időzónája `Europe/Budapest`, locale-ja `hu`, faker locale-ja `hu_HU`.
-- A cél PHP-verzió 8.4; a jelenleg érzékelt PHP 8.2 Herd-környezetet implementálás előtt 8.4-re kell váltani, és a Composer-követelményt ehhez igazítani.
-- Nincs külön nyilvános API, mobilalkalmazás, projektkezelés, jelenléti automata, bérszámfejtés vagy túlóraszámítás.
 - Az Excel-generálás szinkron letöltés; a kis alkalmazás várható adatmennyisége nem indokol külön export jobot.
-- A terv végleges elfogadása után ez a specifikáció képezi a projekt magyar nyelvű `README.md` dokumentációjának alapját.
