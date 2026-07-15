@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import PaginationLinks from '@/components/PaginationLinks.vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -18,7 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { User } from '@/types';
+import type { Paginated, User } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { Ban, CircleCheck, UserRoundCog } from 'lucide-vue-next';
 import { reactive, ref } from 'vue';
@@ -30,7 +31,7 @@ interface UserEditorForm extends Record<string, string | boolean> {
     is_active: boolean;
 }
 
-const props = defineProps<{ users: { data: User[] }; filters: { search?: string; role?: string; status?: string } }>();
+const props = defineProps<{ users: Paginated<User>; filters: { search?: string; role?: string; status?: string } }>();
 const filters = reactive({ search: props.filters.search ?? '', role: props.filters.role ?? 'all', status: props.filters.status ?? 'all' });
 const selectedUser = ref<User | null>(null);
 const editorOpen = ref(false);
@@ -104,20 +105,32 @@ function submit(): void {
                 <p class="text-sm text-muted-foreground">Szerepkörök és hozzáférések kezelése.</p>
             </div>
             <Card
-                ><CardContent class="grid gap-3 p-4 md:grid-cols-[1fr_180px_180px_auto]"
-                    ><Input v-model="filters.search" placeholder="Név vagy e-mail" @keyup.enter="apply" /><Select v-model="filters.role"
-                        ><SelectTrigger><SelectValue placeholder="Szerepkör" /></SelectTrigger
-                        ><SelectContent
-                            ><SelectItem value="all">Minden szerepkör</SelectItem><SelectItem value="admin">Admin</SelectItem
-                            ><SelectItem value="user">Felhasználó</SelectItem></SelectContent
-                        ></Select
-                    ><Select v-model="filters.status"
-                        ><SelectTrigger><SelectValue placeholder="Állapot" /></SelectTrigger
-                        ><SelectContent
-                            ><SelectItem value="all">Minden állapot</SelectItem><SelectItem value="active">Aktív</SelectItem
-                            ><SelectItem value="inactive">Letiltott</SelectItem></SelectContent
-                        ></Select
-                    ><Button @click="apply">Szűrés</Button></CardContent
+                ><CardContent class="grid gap-3 p-4 md:grid-cols-[1fr_180px_180px_auto] md:items-end"
+                    ><div class="grid gap-2">
+                        <Label for="user-search">Keresés</Label>
+                        <Input id="user-search" v-model="filters.search" placeholder="Név vagy e-mail" @keyup.enter="apply" />
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="role-filter">Szerepkör</Label
+                        ><Select v-model="filters.role"
+                            ><SelectTrigger id="role-filter"><SelectValue placeholder="Szerepkör" /></SelectTrigger
+                            ><SelectContent
+                                ><SelectItem value="all">Minden szerepkör</SelectItem><SelectItem value="admin">Admin</SelectItem
+                                ><SelectItem value="user">Felhasználó</SelectItem></SelectContent
+                            ></Select
+                        >
+                    </div>
+                    <div class="grid gap-2">
+                        <Label for="status-filter">Állapot</Label
+                        ><Select v-model="filters.status"
+                            ><SelectTrigger id="status-filter"><SelectValue placeholder="Állapot" /></SelectTrigger
+                            ><SelectContent
+                                ><SelectItem value="all">Minden állapot</SelectItem><SelectItem value="active">Aktív</SelectItem
+                                ><SelectItem value="inactive">Letiltott</SelectItem></SelectContent
+                            ></Select
+                        >
+                    </div>
+                    <Button @click="apply">Szűrés</Button></CardContent
                 ></Card
             ><Card
                 ><CardContent class="overflow-x-auto p-0"
@@ -154,6 +167,7 @@ function submit(): void {
                     ></CardContent
                 ></Card
             >
+            <PaginationLinks :links="users.links" />
 
             <Dialog :open="editorOpen" @update:open="setEditorOpen">
                 <DialogContent class="sm:max-w-lg">

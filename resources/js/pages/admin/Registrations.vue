@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import PaginationLinks from '@/components/PaginationLinks.vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -15,11 +16,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { RegistrationRequest } from '@/types';
+import type { Paginated, RegistrationRequest } from '@/types';
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 
-defineProps<{ requests: { data: RegistrationRequest[] } }>();
+defineProps<{ requests: Paginated<RegistrationRequest> }>();
 const rejecting = ref<RegistrationRequest | null>(null);
 function approve(request: RegistrationRequest): void {
     router.post(route('admin.registrations.approve', { registrationRequest: request.id }));
@@ -45,7 +46,7 @@ function reject(): void {
             <Card
                 ><CardHeader
                     ><CardTitle
-                        >Kérelmek <Badge variant="secondary">{{ requests.data.length }}</Badge></CardTitle
+                        >Kérelmek <Badge variant="secondary">{{ requests.total }}</Badge></CardTitle
                     ></CardHeader
                 ><CardContent class="overflow-x-auto"
                     ><Table
@@ -88,6 +89,7 @@ function reject(): void {
                     ></CardContent
                 ></Card
             >
+            <PaginationLinks :links="requests.links" />
         </div>
     </AppLayout>
 </template>

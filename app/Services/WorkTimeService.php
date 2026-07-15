@@ -2,10 +2,13 @@
 
 namespace App\Services;
 
+use App\Http\Requests\WorklogFilterRequest;
+use App\Models\User;
 use App\Models\WorkEntry;
 use Carbon\CarbonImmutable;
-use Illuminate\Http\Request;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class WorkTimeService
 {
@@ -18,16 +21,88 @@ class WorkTimeService
     }
 
     /** @return array{from: CarbonImmutable, to: CarbonImmutable} */
-    public function range(Request $request): array
+    public function range(WorklogFilterRequest $request): array
     {
-        $from = $request->date('from')?->toImmutable() ?? now()->startOfMonth()->toImmutable();
-        $to = $request->date('to')?->toImmutable() ?? now()->endOfMonth()->toImmutable();
-
-        if ($from->greaterThan($to)) {
-            [$from, $to] = [$to, $from];
-        }
+        $validated = $request->validated();
+        $from = isset($validated['from'])
+            ? CarbonImmutable::parse($validated['from'])
+            : now()->startOfMonth()->toImmutable();
+        $to = isset($validated['to'])
+            ? CarbonImmutable::parse($validated['to'])
+            : now()->endOfDay()->toImmutable();
 
         return ['from' => $from->startOfDay(), 'to' => $to->endOfDay()];
+    }
+
+    /** @return array<int, array{date: string, minutes: int, duration: string}> */
+    public function dailyFromQuery(Builder $query): array
+    {
+        $dateSql = $this->workDateSql();
+
+        return (clone $query)->toBase()
+            ->selectRaw($dateSql.' as work_date')
+            ->selectRaw('SUM('.$this->minutesSql().') as minutes')
+            ->groupByRaw($dateSql)
+            ->orderByRaw($dateSql)
+            ->get()
+            ->map(function (object $day): array {
+                $minutes = (int) $day->minutes;
+
+                return ['date' => (string) $day->work_date, 'minutes' => $minutes, 'duration' => $this->format($minutes)];
+            })
+            ->all();
+    }
+
+    /** @return array{total_minutes: int, total_duration: string, workdays: int, average_minutes: int, average_duration: string} */
+    public function kpisFromQuery(Builder $query): array
+    {
+        $totals = (clone $query)->toBase()
+            ->selectRaw('COALESCE(SUM('.$this->minutesSql().'), 0) as total_minutes')
+            ->selectRaw('COUNT(DISTINCT '.$this->workDateSql().') as workdays')
+            ->first();
+        $total = (int) $totals->total_minutes;
+        $workdays = (int) $totals->workdays;
+        $average = $workdays > 0 ? (int) round($total / $workdays) : 0;
+
+        return [
+            'total_minutes' => $total,
+            'total_duration' => $this->format($total),
+            'workdays' => $workdays,
+            'average_minutes' => $average,
+            'average_duration' => $this->format($average),
+        ];
+    }
+
+    /** @return array<int, array{user_id: int, name: string, total_minutes: int, total_duration: string, workdays: int, average_minutes: int, average_duration: string}> */
+    public function userSummariesFromQuery(Builder $query): array
+    {
+        $workEntriesTable = (new WorkEntry)->getTable();
+        $usersTable = (new User)->getTable();
+
+        return (clone $query)->toBase()
+            ->join($usersTable, $usersTable.'.id', '=', $workEntriesTable.'.user_id')
+            ->select([$workEntriesTable.'.user_id', $usersTable.'.name'])
+            ->selectRaw('SUM('.$this->minutesSql().') as total_minutes')
+            ->selectRaw('COUNT(DISTINCT '.$this->workDateSql().') as workdays')
+            ->groupBy($workEntriesTable.'.user_id', $usersTable.'.name')
+            ->orderBy($usersTable.'.name')
+            ->get()
+            ->map(function (object $summary): array {
+                $total = (int) $summary->total_minutes;
+                $workdays = (int) $summary->workdays;
+                $average = $workdays > 0 ? (int) round($total / $workdays) : 0;
+
+                return [
+                    'user_id' => (int) $summary->user_id,
+                    'name' => (string) $summary->name,
+                    'total_minutes' => $total,
+                    'total_duration' => $this->format($total),
+                    'workdays' => $workdays,
+                    'average_minutes' => $average,
+                    'average_duration' => $this->format($average),
+                ];
+            })
+            ->all();
     }
 
     /** @param Collection<int, WorkEntry> $entries
@@ -82,5 +157,23 @@ class WorkTimeService
     public function format(int $minutes): string
     {
         return sprintf('%d:%02d', intdiv($minutes, 60), $minutes % 60);
+    }
+
+    private function minutesSql(): string
+    {
+        $table = (new WorkEntry)->getTable();
+
+        if (DB::connection()->getDriverName() === 'sqlite') {
+            return "CAST((strftime('%s', DATE({$table}.work_date) || ' ' || {$table}.end_time) - strftime('%s', DATE({$table}.work_date) || ' ' || {$table}.start_time)) / 60 AS INTEGER)";
+        }
+
+        return "TIMESTAMPDIFF(MINUTE, CONCAT({$table}.work_date, ' ', {$table}.start_time), CONCAT({$table}.work_date, ' ', {$table}.end_time))";
+    }
+
+    private function workDateSql(): string
+    {
+        $column = (new WorkEntry)->getTable().'.work_date';
+
+        return DB::connection()->getDriverName() === 'sqlite' ? "DATE({$column})" : $column;
     }
 }

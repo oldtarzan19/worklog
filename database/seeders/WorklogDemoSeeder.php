@@ -8,6 +8,7 @@ use App\Models\WorkEntry;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use LogicException;
 
 class WorklogDemoSeeder extends Seeder
 {
@@ -15,6 +16,10 @@ class WorklogDemoSeeder extends Seeder
 
     public function run(): void
     {
+        if (app()->isProduction()) {
+            throw new LogicException('A demo adatok production környezetben nem tölthetők be.');
+        }
+
         User::query()->updateOrCreate(
             ['email' => 'admin@worklog.test'],
             [
@@ -37,8 +42,10 @@ class WorklogDemoSeeder extends Seeder
             );
 
             $user->workEntries()
-                ->whereDate('work_date', '>=', CarbonImmutable::today()->subDays(self::HISTORY_DAYS)->toDateString())
-                ->whereDate('work_date', '<', CarbonImmutable::today()->toDateString())
+                ->withinWorkDates(
+                    CarbonImmutable::today()->subDays(self::HISTORY_DAYS)->toDateString(),
+                    CarbonImmutable::yesterday()->toDateString(),
+                )
                 ->delete();
 
             $this->seedWorkEntries($user, $employee, $employeeIndex);
@@ -76,8 +83,8 @@ class WorklogDemoSeeder extends Seeder
     {
         $entry = WorkEntry::query()
             ->whereBelongsTo($user)
-            ->whereDate('work_date', $workDate->toDateString())
-            ->whereTime('start_time', $startTime)
+            ->onWorkDate($workDate->toDateString())
+            ->where('start_time', $startTime)
             ->first();
 
         $attributes = [

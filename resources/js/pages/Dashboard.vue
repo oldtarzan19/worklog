@@ -1,40 +1,28 @@
 <script setup lang="ts">
+import PaginationLinks from '@/components/PaginationLinks.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import WorklogPanel from '@/components/worklog/WorklogPanel.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
-import type { DailySummary, DashboardFilters, SharedData, TimeEntry, WorklogKpis } from '@/types';
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
-import { toast } from 'vue-sonner';
-
-interface PaginatedEntries {
-    data: TimeEntry[];
-    links: { url: string | null; label: string; active: boolean }[];
-}
+import type { DailySummary, DashboardFilters, Paginated, TimeEntry, WorklogKpis } from '@/types';
+import { Head, router } from '@inertiajs/vue3';
+import { RotateCcw } from 'lucide-vue-next';
+import { computed, reactive } from 'vue';
 
 const props = defineProps<{
     filters: DashboardFilters;
     dailySummaries: DailySummary[];
     kpis: WorklogKpis;
-    entries: PaginatedEntries;
+    entries: Paginated<TimeEntry>;
     calendarEntries: TimeEntry[];
 }>();
-const page = usePage<SharedData>();
 const dates = reactive({ from: props.filters.from, to: props.filters.to });
 const exportUrl = computed(() => route('export.own', dates));
-
-watch(
-    () => page.props.flash.success,
-    (message) => {
-        if (message) toast.success(message);
-    },
-    { immediate: true },
-);
+const todayString = localDate(new Date());
 
 function apply(): void {
-    router.get(route('dashboard'), dates, { preserveState: true, preserveScroll: true });
+    router.get(route('dashboard'), dates, { preserveScroll: true });
 }
 
 function preset(type: string): void {
@@ -46,13 +34,20 @@ function preset(type: string): void {
         to = new Date(today.getFullYear(), today.getMonth(), 0);
     } else if (type === 'current-year') {
         from = new Date(today.getFullYear(), 0, 1);
-        to = new Date(today.getFullYear(), 11, 31);
+        to = today;
     } else {
         from = new Date(today.getFullYear(), today.getMonth(), 1);
-        to = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        to = today;
     }
     dates.from = localDate(from);
     dates.to = localDate(to);
+    apply();
+}
+
+function resetDateRange(): void {
+    const today = new Date();
+    dates.from = localDate(new Date(today.getFullYear(), today.getMonth(), 1));
+    dates.to = localDate(today);
     apply();
 }
 
@@ -70,9 +65,21 @@ function localDate(date: Date): string {
                 <p class="text-sm text-muted-foreground">Rögzítsd és tekintsd át a ledolgozott idődet.</p>
             </div>
             <div class="grid gap-3 rounded-xl border bg-card p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-                <div class="grid gap-2"><Label for="from">Ettől</Label><Input id="from" v-model="dates.from" type="date" /></div>
-                <div class="grid gap-2"><Label for="to">Eddig</Label><Input id="to" v-model="dates.to" type="date" /></div>
-                <Button @click="apply">Szűrés</Button>
+                <div class="grid gap-2"><Label for="from">Ettől</Label><Input id="from" v-model="dates.from" type="date" :max="todayString" /></div>
+                <div class="grid gap-2"><Label for="to">Eddig</Label><Input id="to" v-model="dates.to" type="date" :max="todayString" /></div>
+                <div class="flex gap-2">
+                    <Button class="flex-1 sm:flex-none" @click="apply">Szűrés</Button>
+                    <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        title="Időszak visszaállítása"
+                        aria-label="Időszak visszaállítása az aktuális hónapra"
+                        @click="resetDateRange"
+                    >
+                        <RotateCcw class="size-4" />
+                    </Button>
+                </div>
             </div>
             <WorklogPanel
                 :filters="filters"
@@ -83,17 +90,7 @@ function localDate(date: Date): string {
                 :export-url="exportUrl"
                 @preset="preset"
             />
-            <div v-if="entries.links.length > 3" class="flex flex-wrap justify-center gap-1">
-                <Button
-                    v-for="link in entries.links"
-                    :key="link.label"
-                    as-child
-                    size="sm"
-                    :variant="link.active ? 'default' : 'outline'"
-                    :disabled="!link.url"
-                    ><Link :href="link.url || '#'" preserve-scroll>{{ link.label.replace('&laquo;', '‹').replace('&raquo;', '›') }}</Link></Button
-                >
-            </div>
+            <PaginationLinks :links="entries.links" />
         </div>
     </AppLayout>
 </template>

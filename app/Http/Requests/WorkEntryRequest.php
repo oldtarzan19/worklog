@@ -11,6 +11,8 @@ use Illuminate\Validation\Validator;
 
 abstract class WorkEntryRequest extends FormRequest
 {
+    public const NOTE_MAX_LENGTH = 500;
+
     /** @return array<string, mixed> */
     public function rules(): array
     {
@@ -19,7 +21,15 @@ abstract class WorkEntryRequest extends FormRequest
             'work_date' => ['required', 'date_format:Y-m-d'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i'],
-            'note' => ['nullable', 'string', 'max:2000'],
+            'note' => ['nullable', 'string', 'max:'.self::NOTE_MAX_LENGTH],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'note.max' => 'A megjegyzés legfeljebb 500 karakter hosszú lehet.',
         ];
     }
 
@@ -45,16 +55,19 @@ abstract class WorkEntryRequest extends FormRequest
                 $validator->errors()->add('end_time', 'Jövőbeli munkaidő nem rögzíthető.');
             }
 
-            $userId = $this->user()?->isAdmin() && $this->filled('user_id')
-                ? $this->integer('user_id')
-                : $this->user()?->getKey();
+            $routeEntry = $this->route('work_entry');
+            $userId = $routeEntry instanceof WorkEntry
+                ? $routeEntry->user_id
+                : ($this->user()?->isAdmin() && $this->filled('user_id')
+                    ? $this->integer('user_id')
+                    : $this->user()?->getKey());
 
             $overlap = WorkEntry::query()
                 ->where('user_id', $userId)
-                ->whereDate('work_date', $date)
+                ->onWorkDate($date)
                 ->where('start_time', '<', $endTime)
                 ->where('end_time', '>', $startTime)
-                ->when($this->route('work_entry'), fn ($query, WorkEntry $entry) => $query->whereKeyNot($entry->getKey()))
+                ->when($routeEntry instanceof WorkEntry, fn ($query) => $query->whereKeyNot($routeEntry->getKey()))
                 ->exists();
 
             if ($overlap) {

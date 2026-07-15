@@ -2,16 +2,15 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\StoreRegistrationRequest;
 use App\Models\RegistrationRequest;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -19,9 +18,7 @@ class RegisteredUserController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('auth/Register', [
-            'isFirstRegistration' => ! User::query()->exists() && ! RegistrationRequest::query()->exists(),
-        ]);
+        return Inertia::render('auth/Register');
     }
 
     public function pending(): Response
@@ -31,25 +28,22 @@ class RegisteredUserController extends Controller
 
     public function store(StoreRegistrationRequest $request): RedirectResponse
     {
-        return Cache::lock('worklog:first-registration', 10)->block(5, function () use ($request): RedirectResponse {
-            return DB::transaction(function () use ($request): RedirectResponse {
-                $isFirstRegistration = ! User::query()->exists() && ! RegistrationRequest::query()->exists();
+        $normalizedEmail = $request->string('email')->lower()->toString();
+
+        return Cache::lock('worklog:registration:'.hash('sha256', $normalizedEmail), 10)->block(5, function () use ($request, $normalizedEmail): RedirectResponse {
+            return DB::transaction(function () use ($request, $normalizedEmail): RedirectResponse {
+                if (User::query()->where('email', $request->string('email'))->exists()
+                    || RegistrationRequest::query()->where('email', $request->string('email'))->exists()) {
+                    throw ValidationException::withMessages([
+                        'email' => 'Ezzel az e-mail-címmel már létezik fiók vagy függő kérelem.',
+                    ]);
+                }
+
                 $attributes = [
                     'name' => $request->string('name'),
-                    'email' => $request->string('email'),
+                    'email' => $normalizedEmail,
                     'password' => Hash::make($request->string('password')),
                 ];
-
-                if ($isFirstRegistration) {
-                    $user = User::query()->create([
-                        ...$attributes,
-                        'role' => UserRole::Admin,
-                        'is_active' => true,
-                    ]);
-                    Auth::login($user);
-
-                    return to_route('dashboard')->with('success', 'Az első fiók adminisztrátorként létrejött.');
-                }
 
                 RegistrationRequest::query()->create($attributes);
 

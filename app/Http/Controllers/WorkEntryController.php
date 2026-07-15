@@ -2,31 +2,32 @@
 
 namespace App\Http\Controllers;
 
+use App\Actions\SaveWorkEntry;
 use App\Http\Requests\StoreWorkEntryRequest;
 use App\Http\Requests\UpdateWorkEntryRequest;
+use App\Models\User;
 use App\Models\WorkEntry;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Gate;
 
 class WorkEntryController extends Controller
 {
-    public function store(StoreWorkEntryRequest $request): RedirectResponse
+    public function store(StoreWorkEntryRequest $request, SaveWorkEntry $saveWorkEntry): RedirectResponse
     {
         Gate::authorize('create', WorkEntry::class);
         $data = $request->validated();
-        $data['user_id'] = $request->user()->isAdmin() && $request->filled('user_id')
-            ? $request->integer('user_id')
-            : $request->user()->id;
-        WorkEntry::query()->create($data);
+        $owner = $request->user()->isAdmin() && $request->filled('user_id')
+            ? User::query()->findOrFail($request->integer('user_id'))
+            : $request->user();
+        $saveWorkEntry->create($owner, $data);
 
         return back()->with('success', 'A munkaidő-bejegyzés létrejött.');
     }
 
-    public function update(UpdateWorkEntryRequest $request, WorkEntry $workEntry): RedirectResponse
+    public function update(UpdateWorkEntryRequest $request, WorkEntry $workEntry, SaveWorkEntry $saveWorkEntry): RedirectResponse
     {
         $data = $request->validated();
-        unset($data['user_id']);
-        $workEntry->update($data);
+        $saveWorkEntry->update($workEntry, $data);
 
         return back()->with('success', 'A munkaidő-bejegyzés frissült.');
     }

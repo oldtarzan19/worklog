@@ -33,6 +33,8 @@ interface ChartDatum {
     hours: number;
 }
 
+const NOTE_MAX_LENGTH = 500;
+
 const props = withDefaults(
     defineProps<{
         filters: DashboardFilters;
@@ -45,9 +47,10 @@ const props = withDefaults(
         ownerName?: string | null;
         editable?: boolean;
         creatable?: boolean;
+        calendarInteractive?: boolean;
         detailsPageSize?: number | null;
     }>(),
-    { editable: true, creatable: true, detailsPageSize: null },
+    { editable: true, creatable: true, calendarInteractive: true, detailsPageSize: null },
 );
 defineEmits<{ preset: [value: string] }>();
 
@@ -79,6 +82,15 @@ watch(
     },
 );
 
+watch(
+    () => props.filters.from,
+    (from) => {
+        selectedDate.value = new CalendarDate(Number(from.slice(0, 4)), Number(from.slice(5, 7)), 1);
+        sheetOpen.value = false;
+        editing.value = null;
+    },
+);
+
 const form = useForm({
     user_id: props.userId ?? undefined,
     work_date: selectedDateString.value,
@@ -94,9 +106,11 @@ const newEntryForm = useForm({
     end_time: '16:00',
     note: '',
 });
+const noteCharactersRemaining = computed(() => NOTE_MAX_LENGTH - form.note.length);
+const newNoteCharactersRemaining = computed(() => NOTE_MAX_LENGTH - newEntryForm.note.length);
 
 function selectDate(value: DateValue | undefined): void {
-    if (!value || isFutureDate(value)) return;
+    if (!value || isFutureDate(value) || props.calendarInteractive === false) return;
     selectedDate.value = value;
     editing.value = null;
     editEntryOpen.value = false;
@@ -220,7 +234,23 @@ function heatClass(day: DateValue): string {
                             </div>
                             <div class="grid gap-2">
                                 <Label for="new-note">Megjegyzés</Label>
-                                <Textarea id="new-note" v-model="newEntryForm.note" placeholder="Opcionális megjegyzés" />
+                                <Textarea
+                                    id="new-note"
+                                    v-model="newEntryForm.note"
+                                    placeholder="Opcionális megjegyzés"
+                                    :maxlength="NOTE_MAX_LENGTH"
+                                    aria-describedby="new-note-counter"
+                                />
+                                <p
+                                    id="new-note-counter"
+                                    :class="[
+                                        'text-right text-xs tabular-nums',
+                                        newNoteCharactersRemaining <= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground',
+                                    ]"
+                                    aria-live="polite"
+                                >
+                                    {{ newNoteCharactersRemaining }} karakter maradt
+                                </p>
                                 <InputError :message="newEntryForm.errors.note" />
                             </div>
                             <DialogFooter>
@@ -258,18 +288,23 @@ function heatClass(day: DateValue): string {
             <Card class="overflow-hidden">
                 <CardHeader
                     ><CardTitle>Munkaidő-naptár</CardTitle
-                    ><CardDescription>A múltbeli napokra kattintva megtekintheted és szerkesztheted a bejegyzéseket.</CardDescription></CardHeader
+                    ><CardDescription v-if="calendarInteractive !== false"
+                        >A múltbeli napokra kattintva megtekintheted és szerkesztheted a bejegyzéseket.</CardDescription
+                    ><CardDescription v-else>A kiválasztott időszak csapatszintű napi összesítése.</CardDescription></CardHeader
                 >
-                <CardContent class="overflow-x-auto">
+                <CardContent>
                     <Calendar
                         v-model="selectedDate"
                         locale="hu-HU"
-                        class="min-w-[620px] rounded-md border"
+                        class="w-full rounded-md border p-2 sm:p-3"
+                        :readonly="calendarInteractive === false"
                         :is-date-disabled="isFutureDate"
                         @update:model-value="selectDate"
                     >
                         <template #day="{ day }">
-                            <div :class="['flex h-14 w-full min-w-16 flex-col items-center justify-center rounded-md text-xs', heatClass(day)]">
+                            <div
+                                :class="['flex h-12 w-full min-w-0 flex-col items-center justify-center rounded-md text-xs sm:h-14', heatClass(day)]"
+                            >
                                 <span class="font-medium">{{ day.day }}</span>
                                 <span class="text-[10px] text-muted-foreground">{{ summaryMap.get(day.toString())?.duration ?? '—' }}</span>
                             </div>
@@ -322,7 +357,7 @@ function heatClass(day: DateValue): string {
                                 ><TableCell class="max-w-xs truncate">{{ entry.note || '—' }}</TableCell></TableRow
                             >
                             <TableRow v-if="!entries.length"
-                                ><TableCell colspan="6" class="h-24 text-center text-muted-foreground"
+                                ><TableCell :colspan="showsUserColumn ? 6 : 5" class="h-24 text-center text-muted-foreground"
                                     >Nincs megjeleníthető bejegyzés.</TableCell
                                 ></TableRow
                             >
@@ -358,10 +393,16 @@ function heatClass(day: DateValue): string {
                                 <p class="text-sm text-muted-foreground">{{ entry.note || 'Nincs megjegyzés' }}</p>
                             </div>
                             <div v-if="editable !== false" class="flex gap-1">
-                                <Button size="icon" variant="ghost" @click="editEntry(entry)"><Pencil class="size-4" /></Button
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    :aria-label="`${entry.work_date} bejegyzés szerkesztése`"
+                                    @click="editEntry(entry)"
+                                    ><Pencil class="size-4" /></Button
                                 ><AlertDialog
                                     ><AlertDialogTrigger as-child
-                                        ><Button size="icon" variant="ghost"><Trash2 class="size-4 text-destructive" /></Button></AlertDialogTrigger
+                                        ><Button size="icon" variant="ghost" :aria-label="`${entry.work_date} bejegyzés törlése`"
+                                            ><Trash2 class="size-4 text-destructive" /></Button></AlertDialogTrigger
                                     ><AlertDialogContent
                                         ><AlertDialogHeader
                                             ><AlertDialogTitle>Biztosan törlöd?</AlertDialogTitle
@@ -402,7 +443,23 @@ function heatClass(day: DateValue): string {
                     </div>
                     <div class="grid gap-2">
                         <Label for="edit-note">Megjegyzés</Label>
-                        <Textarea id="edit-note" v-model="form.note" placeholder="Opcionális megjegyzés" />
+                        <Textarea
+                            id="edit-note"
+                            v-model="form.note"
+                            placeholder="Opcionális megjegyzés"
+                            :maxlength="NOTE_MAX_LENGTH"
+                            aria-describedby="edit-note-counter"
+                        />
+                        <p
+                            id="edit-note-counter"
+                            :class="[
+                                'text-right text-xs tabular-nums',
+                                noteCharactersRemaining <= 50 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground',
+                            ]"
+                            aria-live="polite"
+                        >
+                            {{ noteCharactersRemaining }} karakter maradt
+                        </p>
                         <InputError :message="form.errors.note" />
                     </div>
                     <DialogFooter>

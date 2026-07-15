@@ -8,8 +8,6 @@ import AuthBase from '@/layouts/AuthLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { LoaderCircle } from 'lucide-vue-next';
 
-defineProps<{ isFirstRegistration: boolean }>();
-
 const form = useForm({
     name: '',
     email: '',
@@ -25,14 +23,7 @@ const submit = () => {
 </script>
 
 <template>
-    <AuthBase
-        title="Fiók létrehozása"
-        :description="
-            isFirstRegistration
-                ? 'Mivel még nincs fiók a rendszerben, az első regisztráló adminisztrátor lesz.'
-                : 'Add meg az adataidat a regisztrációhoz.'
-        "
-    >
+    <AuthBase title="Fiók létrehozása" description="Add meg az adataidat. A fiók adminisztrátori jóváhagyás után válik aktívvá.">
         <Head title="Regisztráció" />
 
         <form @submit.prevent="submit" class="flex flex-col gap-6">

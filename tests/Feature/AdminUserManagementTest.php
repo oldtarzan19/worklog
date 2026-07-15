@@ -1,7 +1,9 @@
 <?php
 
 use App\Enums\UserRole;
+use App\Models\RegistrationRequest;
 use App\Models\User;
+use Inertia\Testing\AssertableInertia as Assert;
 
 test('normal users cannot access administrator routes', function () {
     $user = User::factory()->create();
@@ -55,6 +57,33 @@ test('an administrator cannot assign an email address used by another account', 
         'role' => UserRole::User->value,
         'is_active' => true,
     ])->assertSessionHasErrors('email');
+});
+
+test('an administrator cannot assign an email address used by a pending request', function () {
+    $admin = User::factory()->admin()->create();
+    $user = User::factory()->create();
+    $request = RegistrationRequest::factory()->create();
+
+    $this->actingAs($admin)->patch(route('admin.users.update', $user), [
+        'name' => $user->name,
+        'email' => $request->email,
+        'role' => UserRole::User->value,
+        'is_active' => true,
+    ])->assertSessionHasErrors('email');
+});
+
+test('the administrator user list exposes paginator metadata', function () {
+    $admin = User::factory()->admin()->create();
+    User::factory()->count(20)->create();
+
+    $this->actingAs($admin)
+        ->get(route('admin.users.index', ['page' => 2]))
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('admin/Users')
+            ->where('users.current_page', 2)
+            ->where('users.total', 21)
+            ->has('users.data', 1)
+            ->has('users.links'));
 });
 
 test('inactive users cannot log in and active sessions are terminated', function () {
