@@ -9,7 +9,7 @@ A megvalósítás alapjául szolgáló eredeti specifikáció a [PLAN.md](PLAN.m
 - PHP 8.4 és Laravel 12
 - Inertia.js 2, Vue 3 és TypeScript
 - Tailwind CSS 3, Shadcn Vue és Unovis diagramok
-- MySQL; a tesztek SQLite adatbázissal is futnak
+- MySQL
 - Pest 3
 - Laravel Excel (`maatwebsite/excel`) XLSX-exporthoz
 
@@ -73,8 +73,6 @@ A `WorklogDemoSeeder` a következő helyi demófiókokat hozza létre:
 
 Kiss Dávid a felhasználólistán és a riportokban is megjelenik, de letiltott állapota miatt nem tud bejelentkezni. Az adminisztrátor a **Felhasználók** oldalon újra engedélyezheti a fiókját.
 
-> Ezek nyilvános, kizárólag helyi fejlesztésre és tesztelésre szánt belépési adatok. Éles környezetben ne használd őket.
-
 A négy munkavállalóhoz az előző 90 nap munkanapjaira valószerű adatok készülnek. A munkanapok jellemzően két idősávból állnak egy ebédszünettel, és néhány kihagyott napot is tartalmaznak. A demó adminisztrátorhoz a seeder nem készít munkaidő-bejegyzéseket.
 
 ### Függő regisztrációs kérelmek
@@ -115,8 +113,6 @@ php artisan migrate --seed
 npm run dev
 ```
 
-A Herd automatikusan kiszolgálja a projektet; az alkalmazást az `.env` fájl `APP_URL` értékén lehet megnyitni. Az alapértelmezett helyi cím `http://worklog.test`.
-
 Production frontend build készítéséhez:
 
 ```powershell
@@ -144,8 +140,6 @@ Az adatbázis teljes újraépítése:
 ```powershell
 php artisan migrate:fresh --seed
 ```
-
-> A `migrate:fresh` minden adatbázistáblát és adatot töröl. Csak olyan helyi vagy tesztadatbázison használd, amelynek tartalma eldobható.
 
 A seeder többször futtatható: frissíti az öt demófiókot, majd a négy demó munkavállaló előző 90 napba eső bejegyzéseit újragenerálja. Emiatt az ezekhez a demófiókokhoz kézzel felvitt, ugyanebbe az időszakba eső bejegyzések is törlődnek. A demófiókok jelszava, szerepköre és aktív állapota minden futtatáskor visszaáll a fent dokumentált értékre.
 
@@ -208,10 +202,3 @@ npm run build
 ```
 
 A tesztek lefedik többek között a regisztráció és jóváhagyás folyamatát, a jogosultságokat, a felhasználókezelést, a munkaidő-validációt, az összesítéseket, a seedert és az XLSX-exportot.
-
-## Jelenlegi korlátok
-
-- Nincs külön nyilvános API vagy mobilalkalmazás.
-- Nincs projektkezelés, normaidő-, túlóra-, bér- vagy jelenléti automata számítás.
-- Nincs e-mail-küldés, e-mail-cím-ellenőrzés vagy elfelejtettjelszó-folyamat.
-- Az XLSX-export szinkron módon készül el.
