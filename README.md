@@ -143,7 +143,7 @@ php artisan migrate:fresh --seed
 
 A seeder többször futtatható: frissíti az öt demófiókot, majd a négy demó munkavállaló előző 90 napba eső bejegyzéseit újragenerálja. Emiatt az ezekhez a demófiókokhoz kézzel felvitt, ugyanebbe az időszakba eső bejegyzések is törlődnek. A demófiókok jelszava, szerepköre és aktív állapota minden futtatáskor visszaáll a fent dokumentált értékre.
 
-A három függő demókérelem újrafuttatáskor frissül, de a seeder nem hoz létre kérelmet olyan e-mail-címhez, amelyből időközben már felhasználói fiók lett. A demó seeder production környezetben szándékosan hibával leáll. Éles adatbázison migrációt seedelés nélkül futtass.
+A három függő demókérelem újrafuttatáskor frissül, de a seeder nem hoz létre kérelmet olyan e-mail-címhez, amelyből időközben már felhasználói fiók lett. Production környezetben a demóadatok feltöltéséhez futtasd a `php artisan db:seed --force` parancsot.
 
 ## Adminisztrátor létrehozása
 
@@ -186,7 +186,7 @@ Az időtartamok valódi Excel-időértékként, `[h]:mm` formátumban készülne
 
 - Állítsd az `APP_ENV=production` és `APP_DEBUG=false` értékeket.
 - Használj saját alkalmazáskulcsot, adatbázist és megfelelő `APP_URL` értéket.
-- Futtasd a migrációkat seedelés nélkül: `php artisan migrate --force`.
+- Futtasd a migrációkat: `php artisan migrate --force`, majd töltsd be a demóadatokat: `php artisan db:seed --force`.
 - Készítsd el a frontend asseteket: `npm ci`, majd `npm run build`.
 - Az első admint a `php artisan worklog:create-admin` paranccsal hozd létre.
 - Az alkalmazás állapotellenőrző végpontja: `/up`.

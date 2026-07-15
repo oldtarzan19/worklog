@@ -48,3 +48,15 @@ test('demo seeder can be run repeatedly without duplicating work entries', funct
         ->and(User::query()->count())->toBe($userCount)
         ->and(RegistrationRequest::query()->count())->toBe($registrationRequestCount);
 });
+
+test('demo seeder can run in production', function () {
+    $this->app->detectEnvironment(fn (): string => 'production');
+
+    $this->artisan('db:seed', [
+        '--class' => WorklogDemoSeeder::class,
+        '--force' => true,
+    ])->assertSuccessful();
+
+    expect($this->app->isProduction())->toBeTrue()
+        ->and(User::query()->where('email', 'admin@worklog.test')->exists())->toBeTrue();
+});
